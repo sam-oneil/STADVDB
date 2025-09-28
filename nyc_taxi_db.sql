@@ -116,8 +116,25 @@ WHERE row_num = 1;
 -- 4. Count the number of trips per vendor per month per pickup location? 
 
 -- 5. What are the peak hours per vendor per month? 
+SELECT VendorID, year, month, CONCAT(hour, ':00') AS peak_hour
+FROM (
+	SELECT route.VendorID, d.year, d.month, d.hour, 
+		   COUNT(*), ROW_NUMBER() OVER ( PARTITION BY route.VendorID, d.year, d.month ORDER BY COUNT(*) DESC ) AS row_num
+	FROM taxi_route_details route
+    JOIN DimDate d ON route.pickup_date_id = d.date_id
+    GROUP BY route.VendorID, d.year, d.month, d.hour
+) r
+WHERE row_num = 1;
 
 -- 6. What is the top mode of payment per pickup location? 
+SELECT PULocationID, payment_type AS top_payment
+FROM (
+	SELECT route.PULocationID, payment.payment_type, COUNT(*), ROW_NUMBER() OVER ( PARTITION BY route.PULocationID ORDER BY COUNT(*) DESC ) AS row_num
+    FROM taxi_route_details route
+    JOIN taxi_payment_details payment ON route.tripID = payment.tripID
+    GROUP BY route.PULocationID, payment.payment_type
+) r
+WHERE row_num = 1;
 
 -- Task 6: Come up with an interesting question that can be answered from the data (one per member)
 -- Task 7: Create a query that will answer your question
@@ -149,4 +166,12 @@ ORDER BY d.year, d.month, avg_trip_distance DESC;
 
 -- 3. (Samantha O'Neil)
 
--- 4. (Caryl Nadine Roxas)
+-- 4. Which pickup locations receive the highest average passenger count per vendor and peer month? (Caryl Nadine Roxas)
+SELECT PULocationID, year, month, VendorID, avg_passengers
+FROM (
+    SELECT d.year, d.month, route.VendorID, route.PULocationID, AVG(route.passenger_count) AS avg_passengers, ROW_NUMBER() OVER ( PARTITION BY d.year, d.month, route.VendorID ORDER BY AVG(route.passenger_count) DESC) AS row_num
+    FROM taxi_route_details route
+    JOIN DimDate d ON route.pickup_date_id = d.date_id
+    GROUP BY d.year, d.month, route.VendorID, route.PULocationID
+) r
+WHERE row_num = 1;
