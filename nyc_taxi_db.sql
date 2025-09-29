@@ -112,8 +112,29 @@ FROM (
 WHERE row_num = 1;
 
 -- 3. Are taxis earning more if they have more passengers? 
+SELECT 
+    r.passenger_count,
+    AVG(p.total_amount) AS avg_total_fare,
+    COUNT(*) AS total_trips
+FROM taxi_route_details r
+JOIN taxi_payment_details p 
+    ON r.tripID = p.tripID
+GROUP BY r.passenger_count
+ORDER BY r.passenger_count;
 
 -- 4. Count the number of trips per vendor per month per pickup location? 
+SELECT 
+    d.year,
+    d.month,
+    r.VendorID,
+    r.PULocationID,
+    COUNT(*) AS trip_count
+FROM taxi_route_details r
+JOIN DimDate d 
+    ON r.pickup_date_id = d.date_id
+GROUP BY d.year, d.month, r.VendorID, r.PULocationID
+ORDER BY trip_count DESC;
+
 
 -- 5. What are the peak hours per vendor per month? 
 SELECT VendorID, year, month, CONCAT(hour, ':00') AS peak_hour
@@ -164,7 +185,19 @@ JOIN DimDate d
 GROUP BY d.year, d.month, r.VendorID
 ORDER BY d.year, d.month, avg_trip_distance DESC;
 
--- 3. (Samantha O'Neil)
+-- 3. Which pickup locations generate the highest total fare amount per month? (Samantha O'Neil)
+SELECT 
+    d.year,
+    d.month,
+    r.PULocationID,
+    SUM(p.total_amount) AS total_fare
+FROM taxi_route_details r
+JOIN DimDate d 
+    ON r.pickup_date_id = d.date_id
+JOIN taxi_payment_details p
+    ON r.tripID = p.tripID
+GROUP BY d.year, d.month, r.PULocationID
+ORDER BY total_fare DESC;
 
 -- 4. Which pickup locations receive the highest average passenger count per vendor and peer month? (Caryl Nadine Roxas)
 SELECT PULocationID, year, month, VendorID, avg_passengers
